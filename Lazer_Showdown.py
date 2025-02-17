@@ -22,11 +22,6 @@ LIGHT_BLUE = (173, 216, 230)
 PINK = (255, 182, 193)  # Color for point pieces
 GRAY = (100, 100, 100)  # Color for mirror pieces
 
-pygame.init()
-screen = pygame.display.set_mode((1500, 1000), pygame.RESIZABLE)
-pygame.display.set_caption("Lazer Showdown")
-font = pygame.font.Font(None, 36)
-
 score = 0  # Player's score
 game_state = {}  # Dictionary to save game state
 
@@ -280,58 +275,99 @@ class mirrorPiece(Piece):
         else:  # "\" type
             pygame.draw.line(surface, LIGHT_BLUE, self.rect.bottomleft, self.rect.topright, 10)
 
-
-#Main Game Loop    
-reset_game()
-draggable_piece = None
-running = True
-
-while running:
-    redraw_scene()
+def start_screen():
+    """Displays the start screen."""
+    screen.fill(BLACK)  # Clear the screen
+    title_font = pygame.font.Font(None, 72)
+    subtitle_font = pygame.font.Font(None, 36)
     
-    # Update occupied spaces only when necessary (to track where pieces are placed)
-    occupied_spaces = {piece.grid_position for piece in [lzrpiece] + pntpiece + mirrpiece if piece.grid_position}
+    # Title and Subtitle
+    title_text = title_font.render("Lazer Showdown", True, WHITE)
+    screen.blit(title_text, (screen.get_width() // 2 - title_text.get_width() // 2, 100))
     
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            running = False  # Exit the game loop when the window is closed
-        elif event.type == pygame.VIDEORESIZE:
-            screen = pygame.display.set_mode((event.w, event.h), pygame.RESIZABLE)  # Adjust screen size
-            redraw_scene()  # Redraw to fit new window size
-        elif event.type == pygame.MOUSEBUTTONDOWN:
-            # Check if the reset button was clicked
-            if button_x <= event.pos[0] <= button_x + BUTTON_WIDTH and button_y <= event.pos[1] <= button_y + BUTTON_HEIGHT:
-                reset_game()
-            else:
-                # Iterate through pieces in reverse order to select the top-most one
-                for piece in reversed([lzrpiece] + pntpiece + mirrpiece):
-                    if piece.rect.collidepoint(event.pos):  # Check if mouse click is on a piece
-                        draggable_piece = piece  # Assign the selected piece
-                        draggable_piece.dragging = True  # Enable dragging mode
-                        # Store the offset to maintain relative positioning during drag
-                        mouse_offset_x = event.pos[0] - piece.rect.x
-                        mouse_offset_y = event.pos[1] - piece.rect.y
-                        break  # Stop checking after selecting a piece
-        elif event.type == pygame.MOUSEBUTTONUP:
-            if draggable_piece:
-                draggable_piece.snap_to_grid(occupied_spaces)  # Snap piece to grid after release
-                draggable_piece.dragging = False  # Disable dragging mode
-            # If a mirror was placed, create a duplicate in the palette
-            if isinstance(draggable_piece, mirrorPiece) and draggable_piece.grid_position:
-                mirror_type = draggable_piece.mirror_type
-                x_origin = ((screen.get_width() // 2) + ((GRID_SIZE // 2) * CELL_SIZE)) + (CELL_SIZE)
-                mirrpiece.append(mirrorPiece(x_origin, 550 if mirror_type == '/' else 650, mirror_type))
-                draggable_piece = None  # Clear the selected piece
-                save_game_state()  # Save the current state after movement
-        elif event.type == pygame.MOUSEMOTION:
-            if draggable_piece and draggable_piece.dragging:
-                # Move the piece while maintaining the relative offset from the cursor
-                draggable_piece.rect.topleft = (event.pos[0] - mouse_offset_x, event.pos[1] - mouse_offset_y)
-        elif event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_SPACE:
-                lzrpiece.fire_laser()  # Fire the laser when spacebar is pressed
-            elif event.key == pygame.K_r:
-                lzrpiece.rotate_laser()  # Rotate the laser when 'R' is pressed
+    # Instructions
+    instructions_text = subtitle_font.render("Click to Start", True, LIGHT_BLUE)
+    screen.blit(instructions_text, (screen.get_width() // 2 - instructions_text.get_width() // 2, 300))
+    
+    # Button area (optional, you can use a button or click anywhere to start)
+    pygame.draw.rect(screen, GRAY, (screen.get_width() // 2 - 100, 400, 200, 50))  # Start button
+    start_button_text = subtitle_font.render("Start", True, WHITE)
+    screen.blit(start_button_text, (screen.get_width() // 2 - start_button_text.get_width() // 2, 415))
+
+    pygame.display.flip()  # Update the screen to show the start screen
+
+    # Event loop for the start screen
+    waiting_for_input = True
+    while waiting_for_input:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                exit()  # Exit the game entirely
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                # If the mouse is clicked inside the start button area, start the game
+                button_rect = pygame.Rect(screen.get_width() // 2 - 100, 400, 200, 50)
+                if button_rect.collidepoint(event.pos):
+                    waiting_for_input = False  # Exit the start screen loop to start the game
+
+#Main Game Loop
+def main_game_loop(screen):    
+    reset_game()
+    draggable_piece = None
+    running = True
+
+    while running:
+        redraw_scene()
+
+        # Update occupied spaces only when necessary (to track where pieces are placed)
+        occupied_spaces = {piece.grid_position for piece in [lzrpiece] + pntpiece + mirrpiece if piece.grid_position}
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False  # Exit the game loop when the window is closed
+            elif event.type == pygame.VIDEORESIZE:
+                screen = pygame.display.set_mode((event.w, event.h), pygame.RESIZABLE)  # Adjust screen size
+                redraw_scene()  # Redraw to fit new window size
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                # Check if the reset button was clicked
+                if button_x <= event.pos[0] <= button_x + BUTTON_WIDTH and button_y <= event.pos[1] <= button_y + BUTTON_HEIGHT:
+                    reset_game()
+                else:
+                    # Iterate through pieces in reverse order to select the top-most one
+                    for piece in reversed([lzrpiece] + pntpiece + mirrpiece):
+                        if piece.rect.collidepoint(event.pos):  # Check if mouse click is on a piece
+                            draggable_piece = piece  # Assign the selected piece
+                            draggable_piece.dragging = True  # Enable dragging mode
+                            # Store the offset to maintain relative positioning during drag
+                            mouse_offset_x = event.pos[0] - piece.rect.x
+                            mouse_offset_y = event.pos[1] - piece.rect.y
+                            break  # Stop checking after selecting a piece
+            elif event.type == pygame.MOUSEBUTTONUP:
+                if draggable_piece:
+                    draggable_piece.snap_to_grid(occupied_spaces)  # Snap piece to grid after release
+                    draggable_piece.dragging = False  # Disable dragging mode
+                    # If a mirror was placed, create a duplicate in the palette
+                    if isinstance(draggable_piece, mirrorPiece) and draggable_piece.grid_position:
+                        mirror_type = draggable_piece.mirror_type
+                        x_origin = ((screen.get_width() // 2) + ((GRID_SIZE // 2) * CELL_SIZE)) + (CELL_SIZE)
+                        mirrpiece.append(mirrorPiece(x_origin, 550 if mirror_type == '/' else 650, mirror_type))
+                    draggable_piece = None  # Clear the selected piece
+                    save_game_state()  # Save the current state after movement
+            elif event.type == pygame.MOUSEMOTION:
+                if draggable_piece and draggable_piece.dragging:
+                    # Move the piece while maintaining the relative offset from the cursor
+                    draggable_piece.rect.topleft = (event.pos[0] - mouse_offset_x, event.pos[1] - mouse_offset_y)
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_SPACE:
+                    lzrpiece.fire_laser()  # Fire the laser when spacebar is pressed
+                elif event.key == pygame.K_r:
+                    lzrpiece.rotate_laser()  # Rotate the laser when 'R' is pressed
+pygame.init()
+screen = pygame.display.set_mode((1500, 1000), pygame.RESIZABLE)
+pygame.display.set_caption("Lazer Showdown")
+font = pygame.font.Font(None, 36)
+
+start_screen()
+main_game_loop(screen)
 
 pygame.quit()  # Properly exit pygame when the loop ends
 
