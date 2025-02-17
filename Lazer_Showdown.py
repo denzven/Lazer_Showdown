@@ -38,7 +38,8 @@ def reset_game():
     pygame.draw.rect(screen, BLACK, (x_origin, 0, CELL_SIZE, scrHeight))
     lzrpiece = lazerPiece(x_origin, 150)
     pntpiece = [pointPiece(x_origin, 250, 20), pointPiece(x_origin, 350, 30), pointPiece(x_origin, 450, 50)]   
-    mirrpiece = [mirrorPiece(x_origin, 550), mirrorPiece(x_origin, 650)]   
+    mirrpiece = [mirrorPiece(x_origin, 550, "/"), mirrorPiece(x_origin, 650, "\\")]
+
     score = 0
     save_game_state()
     
@@ -210,8 +211,8 @@ class lazerPiece(Piece):
 
                 for piece in mirrpiece:
                     if piece.grid_position == (x, y):
-                        self.direction = self.reflect_laser(self.direction)
-                        break  # Break to prevent multiple direction changes at once
+                        self.direction = self.reflect_laser(self.direction, piece.mirror_type)
+                        break  # Prevent multiple reflections at once
                     
                 # Move the laser in the current direction
                 if self.direction == "up":
@@ -225,15 +226,24 @@ class lazerPiece(Piece):
 
             self.draw_laser_path(laser_path)
 
-    def reflect_laser(self, direction):
-        """Reflect the laser based on mirror interaction"""
-        reflection_map = {
-            "up": "left",
-            "down": "right",
-            "left": "up",
-            "right": "down"
-        }
+    def reflect_laser(self, direction, mirror_type):
+        """Reflects the laser based on the mirror type."""
+        if mirror_type == "/":
+            reflection_map = {
+                "up": "left",
+                "down": "right",
+                "left": "up",
+                "right": "down"
+            }
+        else:  # "\" type
+            reflection_map = {
+                "up": "right",
+                "down": "left",
+                "left": "down",
+                "right": "up"
+            }
         return reflection_map[direction]
+
 
     def draw_laser_path(self, laser_path):
         """Draws the laser beam with a visual delay."""
@@ -256,15 +266,20 @@ class pointPiece(Piece):
 
 class mirrorPiece(Piece):
     """Represents a mirror piece that reflects the laser beam."""
-    def __init__(self, x, y):
+    def __init__(self, x, y, mirror_type="/"):
         super().__init__(x, y, GRAY)
+        self.mirror_type = mirror_type  # Either "/" or "\"
         self.rect = pygame.Rect(x, y, CELL_SIZE, CELL_SIZE)
         self.grid_position = None
 
     def draw(self, surface):
         """Draws the mirror with a diagonal reflection indicator."""
         pygame.draw.rect(surface, GRAY, self.rect)
-        pygame.draw.line(surface, LIGHT_BLUE, self.rect.topleft, self.rect.bottomright, 10)
+        if self.mirror_type == "/":
+            pygame.draw.line(surface, LIGHT_BLUE, self.rect.topleft, self.rect.bottomright, 10)
+        else:  # "\" type
+            pygame.draw.line(surface, LIGHT_BLUE, self.rect.bottomleft, self.rect.topright, 10)
+
 
 #Main Game Loop    
 reset_game()
@@ -301,6 +316,11 @@ while running:
             if draggable_piece:
                 draggable_piece.snap_to_grid(occupied_spaces)  # Snap piece to grid after release
                 draggable_piece.dragging = False  # Disable dragging mode
+            # If a mirror was placed, create a duplicate in the palette
+            if isinstance(draggable_piece, mirrorPiece) and draggable_piece.grid_position:
+                mirror_type = draggable_piece.mirror_type
+                x_origin = ((screen.get_width() // 2) + ((GRID_SIZE // 2) * CELL_SIZE)) + (CELL_SIZE)
+                mirrpiece.append(mirrorPiece(x_origin, 550 if mirror_type == '/' else 650, mirror_type))
                 draggable_piece = None  # Clear the selected piece
                 save_game_state()  # Save the current state after movement
         elif event.type == pygame.MOUSEMOTION:
