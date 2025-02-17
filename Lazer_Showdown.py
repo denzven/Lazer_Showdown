@@ -371,4 +371,4 @@ main_game_loop(screen)
 
 pygame.quit()  # Properly exit pygame when the loop ends
 
-# Made with Love by Denzven 💜
+# Made with Love by Denzven 💜 & guided by ChatGPT 🤖
