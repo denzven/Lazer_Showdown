@@ -25,6 +25,12 @@ GRAY = (100, 100, 100)  # Color for mirror pieces
 score = 0  # Player's score
 game_state = {}  # Dictionary to save game state
 
+#lzrImg = pygame.image.load("assets/laser.png").convert_alpha()
+#mirrSImg = pygame.image.load("assets/mirror_slash.png").convert_alpha()
+#mirrBSImg = pygame.image.load("assets/mirror_backslash.png").convert_alpha()
+#pntImg = pygame.image.load("assets/point.png").convert_alpha()
+
+
 def reset_game():  
     """Resets the game by reinitializing pieces and resetting the score."""
     global lzrpiece, pntpiece, mirrpiece, score
@@ -117,16 +123,25 @@ def draw_scoreboard():
 
 class Piece:
     """Base class for all game pieces that can be placed on the grid."""
-    def __init__(self, x, y, color):
+    def __init__(self, x, y, color,image_path=None):
         self.grid_position = None
         self.palette_position = (x, y)
         self.update_position_from_grid()
         self.color = color
         self.dragging = False
+        self.image = None
+        
+        if image_path:
+            self.image = pygame.image.load(image_path)  # Load the sprite
+            self.image = pygame.transform.scale(self.image, (CELL_SIZE, CELL_SIZE))  # Resize it
+        self.rect = pygame.Rect(x, y, CELL_SIZE, CELL_SIZE)  # For positioning        
     
     def draw(self, surface):
         """Draws the piece on the given surface."""
-        pygame.draw.rect(surface, self.color, self.rect)
+        if self.image:
+            screen.blit(self.image, self.rect.topleft)
+        else:
+            pygame.draw.rect(surface, self.color, self.rect)
     
     def update_position_from_grid(self):
         """Updates the piece position based on the grid or palette placement."""
@@ -154,29 +169,22 @@ class Piece:
 class lazerPiece(Piece):
     """Represents the laser-emitting piece that fires the laser beam."""
     def __init__(self, x, y):
-        super().__init__(x, y, RED)
+        super().__init__(x, y, RED,image_path="assets\lzrImg.png")
         self.x, self.y = x, y
         self.rect = pygame.Rect(x, y, CELL_SIZE, CELL_SIZE)
         self.grid_position = None
         self.direction = "up"
+        self.og_img = self.image
+        self.lzrBeamImg = pygame.image.load('assets/lzrBeamImg.png')  # Load your laser sprite image
+        self.lzrBeamImg = pygame.transform.scale(self.lzrBeamImg, (CELL_SIZE, CELL_SIZE))  # Scale the sprite if needed
     
     def draw(self, surface):
-        pygame.draw.rect(surface, RED, self.rect)
-        self.draw_direction_arrow(surface)
-
-    def draw_direction_arrow(self, surface):
-        """Draws an arrow indicating the laser's firing direction."""
-        arrow_color = WHITE
-        arrow_size = 20
-        if self.direction == "up":
-            points = [(self.rect.centerx, self.rect.top - arrow_size), (self.rect.centerx - 10, self.rect.top), (self.rect.centerx + 10, self.rect.top)]
-        elif self.direction == "down":
-            points = [(self.rect.centerx, self.rect.bottom + arrow_size), (self.rect.centerx - 10, self.rect.bottom), (self.rect.centerx + 10, self.rect.bottom)]
-        elif self.direction == "left":
-            points = [(self.rect.left - arrow_size, self.rect.centery), (self.rect.left, self.rect.centery - 10), (self.rect.left, self.rect.centery + 10)]
-        elif self.direction == "right":
-            points = [(self.rect.right + arrow_size, self.rect.centery), (self.rect.right, self.rect.centery - 10), (self.rect.right, self.rect.centery + 10)]
-        pygame.draw.polygon(surface, arrow_color, points)
+        """Draws the piece on the given surface."""
+        if self.image:
+            self.rotate_img_direction(screen)
+            screen.blit(self.image, self.rect.topleft)
+        else:
+            pygame.draw.rect(surface, self.color, self.rect)
     
     def rotate_laser(self):
         """Rotates the laser to a new set direction."""
@@ -184,6 +192,18 @@ class lazerPiece(Piece):
         current_index = directions.index(self.direction)
         self.direction = directions[(current_index + 1) % len(directions)]
 
+    def rotate_img_direction(self,screen):
+        if self.direction == "up":
+            self.image = pygame.transform.rotate(self.og_img, 0) 
+        elif self.direction == "down":
+            self.image = pygame.transform.rotate(self.og_img, 180) 
+        elif self.direction == "left":
+            self.image = pygame.transform.rotate(self.og_img, 90) 
+        elif self.direction == "right":
+            self.image = pygame.transform.rotate(self.og_img, -90) 
+        
+        self.rect = self.image.get_rect(center=self.rect.center)
+            
     def fire_laser(self):
         """Fires the laser in its set direction, checking for collisions and scoring points."""
         global score
@@ -241,39 +261,80 @@ class lazerPiece(Piece):
 
 
     def draw_laser_path(self, laser_path):
-        """Draws the laser beam with a visual delay."""
+        """Draws the laser beam with a visual delay, and sprite."""
         for i in range(len(laser_path) - 1):
-            pygame.draw.line(screen, RED, laser_path[i], laser_path[i + 1], 5)
+            start_pos = laser_path[i]
+            end_pos = laser_path[i + 1]
+            
+            # Calculate the direction and length of the segment
+            direction = pygame.math.Vector2(end_pos[0] - start_pos[0], end_pos[1] - start_pos[1])
+            segment_length = direction.length()
+            
+            # Normalize the direction vector
+            direction.normalize_ip()
+
+            # Calculate the angle for rotation
+            angle = direction.angle_to(pygame.math.Vector2(1, 0))
+
+            # Create the sprite and rotate it
+            rotated_sprite = pygame.transform.rotate(self.lzrBeamImg, angle)
+            sprite_rect = rotated_sprite.get_rect()
+
+            # Position the sprite at the start of the segment, but move it forward by half the sprite's width
+            offset = direction * (sprite_rect.width / 2)  # Move the sprite forward by half of its width
+            start_pos_offset = start_pos + offset
+
+            # Center the sprite at the adjusted starting position
+            sprite_rect.center = start_pos_offset
+            sprite_rect.width = int(segment_length)  # Stretch the sprite to match the segment length
+            sprite_rect.height = 64  # Keep the height fixed to the sprite's height
+
+            # Draw the rotated sprite
+            screen.blit(rotated_sprite, sprite_rect.topleft)
+
             pygame.display.flip()
             pygame.time.delay(100)
+
+
 
 class pointPiece(Piece):
     """Represents a point piece that adds score when hit by the laser."""
     def __init__(self, x, y, value):
-        super().__init__(x, y, PINK)
+        pntImg = self.get_image_path(value)
+        super().__init__(x, y, PINK,image_path=pntImg)
         self.value = value
     
     def draw(self, surface):
         """Draws the point piece with its score value."""
         super().draw(surface)
-        text = font.render(str(self.value), True, BLACK)
-        surface.blit(text, (self.rect.centerx - 10, self.rect.centery - 10))
-
+           
+    def get_image_path(self, value):
+         """Returns the appropriate image path based on the point piece value."""
+         if value == 20:
+             return "assets/pntImg20.png"
+         elif value == 30:
+             return "assets/pntImg30.png"
+         elif value == 50:
+             return "assets/pntImg50.png"
+         return "assets/pntDefImg.png"  # Default image if no match
+     
 class mirrorPiece(Piece):
     """Represents a mirror piece that reflects the laser beam."""
     def __init__(self, x, y, mirror_type="/"):
-        super().__init__(x, y, GRAY)
+        super().__init__(x, y, GRAY,image_path="assets/mirrImg.png")
         self.mirror_type = mirror_type  # Either "/" or "\"
         self.rect = pygame.Rect(x, y, CELL_SIZE, CELL_SIZE)
         self.grid_position = None
+        self.og_img = self.image
 
     def draw(self, surface):
         """Draws the mirror with a diagonal reflection indicator."""
-        pygame.draw.rect(surface, GRAY, self.rect)
+        #pygame.draw.rect(surface, GRAY, self.rect)
         if self.mirror_type == "/":
-            pygame.draw.line(surface, LIGHT_BLUE, self.rect.topleft, self.rect.bottomright, 10)
+            screen.blit(self.image, self.rect.topleft)
         else:  # "\" type
-            pygame.draw.line(surface, LIGHT_BLUE, self.rect.bottomleft, self.rect.topright, 10)
+            self.image = pygame.transform.flip(self.og_img, True, False)
+            screen.blit(self.image, self.rect.topleft)
 
 def start_screen():
     """Displays the start screen."""
