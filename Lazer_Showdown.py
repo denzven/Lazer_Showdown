@@ -212,10 +212,21 @@ class lazerPiece(Piece):
             x_origin, y_origin = get_grid_origin()
             laser_path = []  # Store laser path points
 
+            # Move the laser beam once ahead
+            if self.direction == "up":
+                y -= 1
+            elif self.direction == "down":
+                y += 1
+            elif self.direction == "left":
+                x -= 1
+            elif self.direction == "right":
+                x += 1
+                    
             while 0 <= x < GRID_SIZE and 0 <= y < GRID_SIZE:
                 start_pos = (x_origin + x * CELL_SIZE + CELL_SIZE // 2, y_origin + y * CELL_SIZE + CELL_SIZE // 2)
                 laser_path.append(start_pos)
-
+                
+                
                 # Check for collisions
                 for piece in pntpiece:
                     if piece.grid_position == (x, y):
@@ -228,7 +239,11 @@ class lazerPiece(Piece):
                     if piece.grid_position == (x, y):
                         self.direction = self.reflect_laser(self.direction, piece.mirror_type)
                         break  # Prevent multiple reflections at once
-                    
+                
+                # Check if the laser is at the laser piece's position
+                if (x, y) == self.grid_position:
+                    break
+                                       
                 # Move the laser in the current direction
                 if self.direction == "up":
                     y -= 1
