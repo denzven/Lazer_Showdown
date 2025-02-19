@@ -25,12 +25,6 @@ GRAY = (100, 100, 100)  # Color for mirror pieces
 score = 0  # Player's score
 game_state = {}  # Dictionary to save game state
 
-#lzrImg = pygame.image.load("assets/images/laser.png").convert_alpha()
-#mirrSImg = pygame.image.load("assets/images/mirror_slash.png").convert_alpha()
-#mirrBSImg = pygame.image.load("assets/images/mirror_backslash.png").convert_alpha()
-#pntImg = pygame.image.load("assets/images/point.png").convert_alpha()
-
-
 def reset_game():  
     """Resets the game by reinitializing pieces and resetting the score."""
     global lzrpiece, pntpiece, mirrpiece, score
