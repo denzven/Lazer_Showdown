@@ -25,10 +25,10 @@ GRAY = (100, 100, 100)  # Color for mirror pieces
 score = 0  # Player's score
 game_state = {}  # Dictionary to save game state
 
-#lzrImg = pygame.image.load("assets/laser.png").convert_alpha()
-#mirrSImg = pygame.image.load("assets/mirror_slash.png").convert_alpha()
-#mirrBSImg = pygame.image.load("assets/mirror_backslash.png").convert_alpha()
-#pntImg = pygame.image.load("assets/point.png").convert_alpha()
+#lzrImg = pygame.image.load("assets/images/laser.png").convert_alpha()
+#mirrSImg = pygame.image.load("assets/images/mirror_slash.png").convert_alpha()
+#mirrBSImg = pygame.image.load("assets/images/mirror_backslash.png").convert_alpha()
+#pntImg = pygame.image.load("assets/images/point.png").convert_alpha()
 
 
 def reset_game():  
@@ -169,13 +169,13 @@ class Piece:
 class lazerPiece(Piece):
     """Represents the laser-emitting piece that fires the laser beam."""
     def __init__(self, x, y):
-        super().__init__(x, y, RED,image_path="assets\lzrImg.png")
+        super().__init__(x, y, RED,image_path="assets/images/lzrImg.png")
         self.x, self.y = x, y
         self.rect = pygame.Rect(x, y, CELL_SIZE, CELL_SIZE)
         self.grid_position = None
         self.direction = "up"
         self.og_img = self.image
-        self.lzrBeamImg = pygame.image.load('assets/lzrBeamImg.png')  # Load your laser sprite image
+        self.lzrBeamImg = pygame.image.load('assets/images/lzrBeamImg.png')  # Load your laser sprite image
         self.lzrBeamImg = pygame.transform.scale(self.lzrBeamImg, (CELL_SIZE, CELL_SIZE))  # Scale the sprite if needed
     
     def draw(self, surface):
@@ -326,17 +326,17 @@ class pointPiece(Piece):
     def get_image_path(self, value):
          """Returns the appropriate image path based on the point piece value."""
          if value == 20:
-             return "assets/pntImg20.png"
+             return "assets/images/pntImg20.png"
          elif value == 30:
-             return "assets/pntImg30.png"
+             return "assets/images/pntImg30.png"
          elif value == 50:
-             return "assets/pntImg50.png"
-         return "assets/pntDefImg.png"  # Default image if no match
+             return "assets/images/pntImg50.png"
+         return "assets/images/pntDefImg.png"  # Default image if no match
      
 class mirrorPiece(Piece):
     """Represents a mirror piece that reflects the laser beam."""
     def __init__(self, x, y, mirror_type="/"):
-        super().__init__(x, y, GRAY,image_path="assets/mirrImg.png")
+        super().__init__(x, y, GRAY,image_path="assets/images/mirrImg.png")
         self.mirror_type = mirror_type  # Either "/" or "\"
         self.rect = pygame.Rect(x, y, CELL_SIZE, CELL_SIZE)
         self.grid_position = None
