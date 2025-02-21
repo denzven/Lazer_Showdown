@@ -33,9 +33,8 @@ The game allows you to interact with the grid and pieces through a combination o
 - **Reset the Game (Click Restart Button)**: 
   - Click the "Restart" button in the bottom-center of the screen to reset the game to its initial state.
 
-### Dice Controls
-  - **roll dice (D key)**
-    - press the **D** key to roll a pair dice.
+- **roll dice (D key)**
+  - press the **D** key to roll a pair dice.
 
 ### Grid and Pieces Interaction
 - **Grid Placement**: 
