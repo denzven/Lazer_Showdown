@@ -7,6 +7,7 @@
 - **Drag-and-Drop Gameplay**: Move laser pieces and mirrors on the grid to solve puzzles.
 - **Multiple Pieces**: Includes laser pieces, mirrors (with different directions), and point pieces that can be used to score points.
 - **Scoring System**: Earn points by properly directing lasers to the point pieces.
+- **pixel style art**: all sprites are cutomizeable and have been set to a pixel-style artwork
 
 ## Gameplay Controls
 
@@ -31,6 +32,10 @@ The game allows you to interact with the grid and pieces through a combination o
 
 - **Reset the Game (Click Restart Button)**: 
   - Click the "Restart" button in the bottom-center of the screen to reset the game to its initial state.
+
+### Dice Controls
+  - **roll dice (D key)**
+    - press the **D** key to roll a pair dice.
 
 ### Grid and Pieces Interaction
 - **Grid Placement**: 
@@ -80,18 +85,8 @@ To play **Lazer Showdown** on your local machine, follow these steps:
     - **Point Pieces**: Place point pieces on the grid to score points when a laser reaches them.
 - **Goal**: The goal of the game is to strategically position the laser and mirrors to hit the point pieces and score as many points as possible.
 
-![inital game board](image.png)
-![lazer beam in game](image-1.png)
-
-## File Structure (for future)
-
-The project is organized into the following structure:
-
-- **`main.py`**: The main game loop is defined here.
-- **`game.py`**: Core game logic (piece movement, laser firing, score management).
-- **`pieces.py`**: Defines the various game pieces (laser, mirrors, points).
-- **`ui.py`**: Contains UI logic, including the start screen and menu options.
-- **`config.py`**: Stores constants and configuration values like grid size and colors.
+![start screen](image-2.png)
+![game in play](image-3.png)
 
 ## Contributing
 
