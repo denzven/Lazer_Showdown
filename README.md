@@ -106,6 +106,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## Acknowledgements
 
 - **Pygame** for the game development library.
+- **aesprite** for the sprite art.
 
 ## Contact
 
