@@ -1,4 +1,5 @@
 import pygame
+import random
 
 # Lazer Showdown - A Grid-Based Laser Reflection Game
 # --------------------------------------------------
@@ -27,14 +28,15 @@ game_state = {}  # Dictionary to save game state
 
 def reset_game():  
     """Resets the game by reinitializing pieces and resetting the score."""
-    global lzrpiece, pntpiece, mirrpiece, score
+    global lzrpiece, pntpiece, mirrpiece, score, dice_list
     scrWidth, scrHeight = get_dimensions()
     x_origin = ((scrWidth // 2) + ((GRID_SIZE // 2) * CELL_SIZE)) + (CELL_SIZE)
     pygame.draw.rect(screen, BLACK, (x_origin, 0, CELL_SIZE, scrHeight))
     lzrpiece = lazerPiece(x_origin, 150)
     pntpiece = [pointPiece(x_origin, 250, 20), pointPiece(x_origin, 350, 30), pointPiece(x_origin, 450, 50)]   
     mirrpiece = [mirrorPiece(x_origin, 550, "/"), mirrorPiece(x_origin, 650, "\\")]
-
+    dice_list = [Dice(200 - CELL_SIZE // 2, (scrHeight // 2) - CELL_SIZE // 2),Dice(200 - CELL_SIZE // 2, ((scrHeight // 2) + 200) - CELL_SIZE // 2)]
+    
     score = 0
     save_game_state()
     
@@ -96,6 +98,8 @@ def redraw_scene():
         piece.draw(screen)
     for piece in mirrpiece:
         piece.draw(screen)
+    for dice in dice_list:
+        dice.draw(screen)
     draw_restart_button()
     draw_scoreboard()
     pygame.display.flip()
@@ -171,7 +175,9 @@ class lazerPiece(Piece):
         self.og_img = self.image
         self.lzrBeamImg = pygame.image.load('assets/images/lzrBeamImg.png')  # Load your laser sprite image
         self.lzrBeamImg = pygame.transform.scale(self.lzrBeamImg, (CELL_SIZE, CELL_SIZE))  # Scale the sprite if needed
-    
+
+        self.lzrBeamstrtImg = pygame.image.load('assets/images/lzrBeamstrtImg.png')  # Load your laser sprite image
+        self.lzrBeamstrtImg = pygame.transform.scale(self.lzrBeamstrtImg, (CELL_SIZE, CELL_SIZE))  # Scale the sprite if needed   
     def draw(self, surface):
         """Draws the piece on the given surface."""
         if self.image:
@@ -237,7 +243,7 @@ class lazerPiece(Piece):
                 # Check if the laser is at the laser piece's position
                 if (x, y) == self.grid_position:
                     break
-                                       
+                                      
                 # Move the laser in the current direction
                 if self.direction == "up":
                     y -= 1
@@ -271,6 +277,11 @@ class lazerPiece(Piece):
 
     def draw_laser_path(self, laser_path):
         """Draws the laser beam with a visual delay, and sprite."""
+
+
+        pygame.display.flip()
+        pygame.time.delay(100)        
+        
         for i in range(len(laser_path) - 1):
             start_pos = laser_path[i]
             end_pos = laser_path[i + 1]
@@ -296,8 +307,14 @@ class lazerPiece(Piece):
             # Center the sprite at the adjusted starting position
             sprite_rect.center = start_pos_offset
             sprite_rect.width = int(segment_length)  # Stretch the sprite to match the segment length
-            sprite_rect.height = 64  # Keep the height fixed to the sprite's height
-
+            sprite_rect.height = CELL_SIZE  # Keep the height fixed to the sprite's height
+            
+            # Draw the start of the laser beam
+            start_posst = laser_path[0]
+            start_sprite = pygame.transform.rotate(self.lzrBeamstrtImg, angle)
+            start_rect = start_sprite.get_rect(center=start_posst)
+            
+            screen.blit(start_sprite, start_rect.topleft)
             # Draw the rotated sprite
             screen.blit(rotated_sprite, sprite_rect.topleft)
 
@@ -356,8 +373,8 @@ def start_screen():
     screen.blit(title_text, (screen.get_width() // 2 - title_text.get_width() // 2, 100))
     
     # Instructions
-    instructions_text = subtitle_font.render("Click to Start", True, LIGHT_BLUE)
-    screen.blit(instructions_text, (screen.get_width() // 2 - instructions_text.get_width() // 2, 300))
+    instructions_text = subtitle_font.render("Click to Start \n Controls: \n press R to rotate the lazer \n press space to fire the lazer \n press d to roll the dice \n pick the pieces and mirrors using your mouse and right click ", True, LIGHT_BLUE)
+    screen.blit(instructions_text, (screen.get_width() // 2 - instructions_text.get_width() // 2, 600))
     
     # Button area (optional, you can use a button or click anywhere to start)
     pygame.draw.rect(screen, GRAY, (screen.get_width() // 2 - 100, 400, 200, 50))  # Start button
@@ -431,6 +448,35 @@ def main_game_loop(screen):
                     lzrpiece.fire_laser()  # Fire the laser when spacebar is pressed
                 elif event.key == pygame.K_r:
                     lzrpiece.rotate_laser()  # Rotate the laser when 'R' is pressed
+                elif event.key == pygame.K_d:
+                    for dice in dice_list:
+                        dice.roll()  # Rotate the laser when 'R' is pressed
+                    
+# Dice Class
+class Dice(pygame.sprite.Sprite):
+    """ two dice on the side of the board for random number gen"""
+    def __init__(self, x, y):
+        super().__init__()
+        self.images = [pygame.image.load(f'assets/images/dice/{i}.png') for i in range(1, 7)]
+        self.images = [pygame.transform.scale(self.images[i], (CELL_SIZE, CELL_SIZE)) for i in range(0, 6)]
+        self.image = self.images[0]  # Start with dice 1
+        self.rect = self.image.get_rect()
+        self.rect.x = x
+        self.rect.y = y
+
+    def roll(self):
+        """ roll the dice and get a random number"""
+        # Randomly choose an image between 1 and 6
+        self.value = random.randint(0, 5)
+        self.image = self.images[self.value]
+                
+    def draw(self, surface):
+        """Draws the piece on the given surface."""
+        if self.image:
+            screen.blit(self.image, self.rect.topleft)
+        else:
+            pygame.draw.rect(surface, RED, self.rect)
+
 pygame.init()
 screen = pygame.display.set_mode((1500, 1000), pygame.RESIZABLE)
 pygame.display.set_caption("Lazer Showdown")
