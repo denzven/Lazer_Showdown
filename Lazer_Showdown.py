@@ -367,19 +367,36 @@ def start_screen():
     screen.fill(BLACK)  # Clear the screen
     title_font = pygame.font.Font(None, 72)
     subtitle_font = pygame.font.Font(None, 36)
-    
+
+    # Logo
+    logo = pygame.image.load("logo.png")
+    logo = pygame.transform.scale(logo, (128*6, 32*6))  # Resize if needed
+    screen.blit(logo, (screen.get_width() // 2 - logo.get_width() // 2, 50))
+
     # Title and Subtitle
     title_text = title_font.render("Lazer Showdown", True, WHITE)
-    screen.blit(title_text, (screen.get_width() // 2 - title_text.get_width() // 2, 100))
-    
+    screen.blit(title_text, (screen.get_width() // 2 - title_text.get_width() // 2, 320))
+
     # Instructions
-    instructions_text = subtitle_font.render("Click to Start \n Controls: \n press R to rotate the lazer \n press space to fire the lazer \n press d to roll the dice \n pick the pieces and mirrors using your mouse and right click ", True, LIGHT_BLUE)
-    screen.blit(instructions_text, (screen.get_width() // 2 - instructions_text.get_width() // 2, 600))
-    
-    # Button area (optional, you can use a button or click anywhere to start)
-    pygame.draw.rect(screen, GRAY, (screen.get_width() // 2 - 100, 400, 200, 50))  # Start button
+    instructions = [
+        "Click to Start \n",
+        "Controls:",
+        "Press R to rotate the lazer",
+        "Press SPACE to fire the lazer",
+        "Press D to roll the dice",
+        "Pick pieces and mirrors with your mouse",
+        "Right-click to place pieces"
+    ]
+
+    for i, line in enumerate(instructions):
+        line_text = subtitle_font.render(line, True, LIGHT_BLUE)
+        screen.blit(line_text, (screen.get_width() // 2 - line_text.get_width() // 2, 400 + i * 40))
+
+    # Start Button
+    button_rect = pygame.Rect(screen.get_width() // 2 - 100, 700, 200, 50)
+    pygame.draw.rect(screen, GRAY, button_rect, border_radius=10)
     start_button_text = subtitle_font.render("Start", True, WHITE)
-    screen.blit(start_button_text, (screen.get_width() // 2 - start_button_text.get_width() // 2, 415))
+    screen.blit(start_button_text, (screen.get_width() // 2 - start_button_text.get_width() // 2, 710))
 
     pygame.display.flip()  # Update the screen to show the start screen
 
@@ -391,10 +408,9 @@ def start_screen():
                 pygame.quit()
                 exit()  # Exit the game entirely
             elif event.type == pygame.MOUSEBUTTONDOWN:
-                # If the mouse is clicked inside the start button area, start the game
-                button_rect = pygame.Rect(screen.get_width() // 2 - 100, 400, 200, 50)
                 if button_rect.collidepoint(event.pos):
                     waiting_for_input = False  # Exit the start screen loop to start the game
+
 
 #Main Game Loop
 def main_game_loop(screen):    

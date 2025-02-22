@@ -1,3 +1,9 @@
+
+<p align="center">
+  <img src=logo.png width=640 height=160 alt="lazer showdown logo" >
+</p>
+
+
 # Lazer Showdown
 
 **Lazer Showdown** is a strategic, physics-based puzzle game where players place laser pieces on a grid to direct lasers toward points of interest. The game features drag-and-drop functionality for moving pieces, two types of mirrors with different directional properties, and an engaging challenge to solve puzzles and rack up points.
