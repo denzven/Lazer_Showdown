@@ -1,6 +1,6 @@
 
 <p align="center" image-rendering: pixelated>
-  <img src=logo.png width=640 height=160 alt="lazer showdown logo" >
+  <img src=assets/images/logo.png width=640 height=160 alt="lazer showdown logo" >
 </p>
 
 # Lazer Showdown

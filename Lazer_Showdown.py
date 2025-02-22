@@ -370,7 +370,7 @@ def start_screen():
     subtitle_font = pygame.font.Font(None, 36)
 
     # Logo
-    logo = pygame.image.load("logo.png")
+    logo = pygame.image.load("assets/images/logo.png")
     logo = pygame.transform.scale(logo, (128*6, 32*6))  # Resize if needed
     screen.blit(logo, (screen.get_width() // 2 - logo.get_width() // 2, 50))
 
@@ -496,7 +496,7 @@ class Dice(pygame.sprite.Sprite):
 
 pygame.init()
 screen = pygame.display.set_mode((1500, 1000), pygame.RESIZABLE)
-icon = pygame.image.load('icon.ico')
+icon = pygame.image.load('assets/images/icon.ico')
 pygame.display.set_caption("Lazer Showdown")
 pygame.display.set_icon(icon)
 font = pygame.font.Font(None, 36)
