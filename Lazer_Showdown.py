@@ -496,7 +496,7 @@ class Dice(pygame.sprite.Sprite):
 
 pygame.init()
 screen = pygame.display.set_mode((1500, 1000), pygame.RESIZABLE)
-icon = pygame.image.load('icon.png')
+icon = pygame.image.load('icon.ico')
 pygame.display.set_caption("Lazer Showdown")
 pygame.display.set_icon(icon)
 font = pygame.font.Font(None, 36)
