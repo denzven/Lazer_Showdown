@@ -10,6 +10,7 @@ import random
 
 # Constants
 GRID_SIZE = 8  # The grid consists of 8x8 cells
+GRID_WIDTH = 4
 CELL_SIZE = 100  # Each grid cell has a fixed size
 TOP_MARGIN = 100  # Margin at the top
 PALETTE_BOX_SIZE = CELL_SIZE  # Size of each palette box
@@ -56,17 +57,17 @@ def draw_grid():
     """Draws the game grid on the screen."""
     x_origin, y_origin = get_grid_origin()
     for i in range(GRID_SIZE + 1):
-        pygame.draw.line(screen, WHITE, (x_origin, y_origin + i * CELL_SIZE), (x_origin + GRID_SIZE * CELL_SIZE, y_origin + i * CELL_SIZE))
-        pygame.draw.line(screen, WHITE, (x_origin + i * CELL_SIZE, y_origin), (x_origin + i * CELL_SIZE, y_origin + GRID_SIZE * CELL_SIZE))
+        pygame.draw.line(screen, WHITE, (x_origin, y_origin + i * CELL_SIZE), (x_origin + GRID_SIZE * CELL_SIZE, y_origin + i * CELL_SIZE),GRID_WIDTH)
+        pygame.draw.line(screen, WHITE, (x_origin + i * CELL_SIZE, y_origin), (x_origin + i * CELL_SIZE, y_origin + GRID_SIZE * CELL_SIZE),GRID_WIDTH)
 
 def draw_palette():
     """Draws the palette area where draggable pieces are placed."""
     scrWidth, scrHeight = get_dimensions()
     x_origin = ((scrWidth // 2) + ((GRID_SIZE // 2) * CELL_SIZE)) + (CELL_SIZE)
-    pygame.draw.rect(screen, BLACK, (x_origin, 0, CELL_SIZE, scrHeight))
+    pygame.draw.rect(screen, BLACK, (x_origin, 0, CELL_SIZE, scrHeight),GRID_WIDTH)
     piece_positions = [(x_origin, 150), (x_origin, 250), (x_origin, 350), (x_origin, 450),(x_origin, 550),(x_origin, 650)]
     for pos in piece_positions:
-        pygame.draw.rect(screen, WHITE, (pos[0], pos[1], PALETTE_BOX_SIZE, PALETTE_BOX_SIZE), 2)
+        pygame.draw.rect(screen, WHITE, (pos[0], pos[1], PALETTE_BOX_SIZE, PALETTE_BOX_SIZE), GRID_WIDTH)
 
 def save_game_state():
     """Saves the current state of all pieces."""
@@ -393,7 +394,7 @@ def start_screen():
         screen.blit(line_text, (screen.get_width() // 2 - line_text.get_width() // 2, 400 + i * 40))
 
     # Start Button
-    button_rect = pygame.Rect(screen.get_width() // 2 - 100, 700, 200, 50)
+    button_rect = pygame.Rect(screen.get_width() // 2 - CELL_SIZE, 700, 200, 50)
     pygame.draw.rect(screen, GRAY, button_rect, border_radius=10)
     start_button_text = subtitle_font.render("Start", True, WHITE)
     screen.blit(start_button_text, (screen.get_width() // 2 - start_button_text.get_width() // 2, 710))
@@ -495,7 +496,9 @@ class Dice(pygame.sprite.Sprite):
 
 pygame.init()
 screen = pygame.display.set_mode((1500, 1000), pygame.RESIZABLE)
+icon = pygame.image.load('icon.png')
 pygame.display.set_caption("Lazer Showdown")
+pygame.display.set_icon(icon)
 font = pygame.font.Font(None, 36)
 
 start_screen()
