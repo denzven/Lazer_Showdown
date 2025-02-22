@@ -89,7 +89,7 @@ To play **Lazer Showdown** on your local machine, follow these steps:
     - **Point Pieces**: Place point pieces on the grid to score points when a laser reaches them.
 - **Goal**: The goal of the game is to strategically position the laser and mirrors to hit the point pieces and score as many points as possible.
 
-![start screen](image-2.png)
+![start Screen](image.png)
 ![game in play](image-3.png)
 
 ## Contributing
