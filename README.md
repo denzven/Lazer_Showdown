@@ -79,6 +79,11 @@ To play **Lazer Showdown** on your local machine, follow these steps:
     ```bash
     python main.py
     ```
+#### OR
+
+1. Download the `.zip` file.  
+2. Extract it anywhere on your machine.  
+3. Run the `.exe` inside the folder — and let the showdown begin!  
 
 ## Gameplay
 
