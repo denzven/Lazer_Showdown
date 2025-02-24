@@ -508,7 +508,8 @@ class Dice(pygame.sprite.Sprite):
         super().__init__()
         self.images = [pygame.image.load(f'assets/images/dice/{i}.png') for i in range(1, 7)]
         self.images = [pygame.transform.scale(self.images[i], (CELL_SIZE, CELL_SIZE)) for i in range(0, 6)]
-        self.image = self.images[0]  # Start with dice 1
+        self.value = random.randint(0, 5)
+        self.image = self.images[self.value]
         self.rect = self.image.get_rect()
         self.rect.x = x
         self.rect.y = y
