@@ -14,7 +14,7 @@ GRID_WIDTH = 4
 CELL_SIZE = 100  # Each grid cell has a fixed size
 TOP_MARGIN = 100  # Margin at the top
 PALETTE_BOX_SIZE = CELL_SIZE  # Size of each palette box
-BUTTON_WIDTH, BUTTON_HEIGHT = CELL_SIZE, 40  # Restart button dimensions
+BUTTON_WIDTH, BUTTON_HEIGHT = 170, 50  # Restart button dimensions
 
 # Colors
 BLACK = (0, 0, 0)
@@ -26,6 +26,34 @@ GRAY = (100, 100, 100)  # Color for mirror pieces
 
 score = 0  # Player's score
 game_state = {}  # Dictionary to save game state
+
+class Button:
+    def __init__(self, image_path, position, scale = 1.0):
+        self.image = pygame.image.load(image_path).convert_alpha()
+        original_width = self.image.get_width()
+        original_height = self.image.get_height()
+        new_width = int(original_width * scale)
+        new_height = int(original_height * scale)
+        self.image = pygame.transform.smoothscale(self.image, (new_width, new_height))
+        self.rect = self.image.get_rect(topleft = position)
+        self.pressed = False
+
+    def draw(self, window):
+        window.blit(self.image, self.rect)
+
+    def is_pressed(self):
+        mouse_pos = pygame.mouse.get_pos()
+        mouse_pressed = pygame.mouse.get_pressed()[0]
+
+        if self.rect.collidepoint(mouse_pos): 
+            if mouse_pressed and not self.pressed:
+                self.pressed = True
+                return True
+
+        if not mouse_pressed:
+            self.pressed = False 
+
+        return False 
 
 def reset_game():  
     """Resets the game by reinitializing pieces and resetting the score."""
@@ -111,9 +139,11 @@ def draw_restart_button():
     global button_x, button_y
     button_x = (((scrWidth // 2) + ((GRID_SIZE // 2) * CELL_SIZE)) + (CELL_SIZE // 2))
     button_y = ((scrHeight - BUTTON_HEIGHT) // 2) + ((GRID_SIZE // 2) * CELL_SIZE) - BUTTON_HEIGHT
-    pygame.draw.rect(screen, GRAY, (button_x, button_y, BUTTON_WIDTH, BUTTON_HEIGHT))
+    button_rect = pygame.Rect(button_x, button_y, BUTTON_WIDTH, BUTTON_HEIGHT)
+    pygame.draw.rect(screen, GRAY, button_rect, border_radius=10)
     text = font.render("Restart", True, WHITE)
     screen.blit(text, (button_x + 7, button_y + 10))
+    #restartBtn.draw(screen)
 
 def draw_scoreboard():
     """Displays the current score on the screen."""
@@ -366,8 +396,9 @@ class mirrorPiece(Piece):
 def start_screen():
     """Displays the start screen."""
     screen.fill(BLACK)  # Clear the screen
-    title_font = pygame.font.Font(None, 72)
-    subtitle_font = pygame.font.Font(None, 36)
+    title_font = pygame.font.Font('assets/fonts/Font.ttf', 72)
+    subtitle_font = pygame.font.Font('assets/fonts/Font.ttf', 32)
+
 
     # Logo
     logo = pygame.image.load("assets/images/logo.png")
@@ -382,9 +413,9 @@ def start_screen():
     instructions = [
         "Click to Start \n",
         "Controls:",
-        "Press R to rotate the lazer",
-        "Press SPACE to fire the lazer",
-        "Press D to roll the dice",
+        "Press   R   to rotate the lazer",
+        "Press   SPACE   to fire the lazer",
+        "Press   D   to roll the dice",
         "Pick pieces and mirrors with your mouse",
         "Right-click to place pieces"
     ]
@@ -392,6 +423,7 @@ def start_screen():
     for i, line in enumerate(instructions):
         line_text = subtitle_font.render(line, True, LIGHT_BLUE)
         screen.blit(line_text, (screen.get_width() // 2 - line_text.get_width() // 2, 400 + i * 40))
+        
 
     # Start Button
     button_rect = pygame.Rect(screen.get_width() // 2 - CELL_SIZE, 700, 200, 50)
@@ -418,7 +450,6 @@ def main_game_loop(screen):
     reset_game()
     draggable_piece = None
     running = True
-
     while running:
         redraw_scene()
 
@@ -434,6 +465,7 @@ def main_game_loop(screen):
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 # Check if the reset button was clicked
                 if button_x <= event.pos[0] <= button_x + BUTTON_WIDTH and button_y <= event.pos[1] <= button_y + BUTTON_HEIGHT:
+                #if restartBtn.is_pressed():
                     reset_game()
                 else:
                     # Iterate through pieces in reverse order to select the top-most one
@@ -499,7 +531,8 @@ screen = pygame.display.set_mode((1500, 1000), pygame.RESIZABLE)
 icon = pygame.image.load('assets/images/icon.ico')
 pygame.display.set_caption("Lazer Showdown")
 pygame.display.set_icon(icon)
-font = pygame.font.Font(None, 36)
+font = pygame.font.Font('assets/fonts/Font.ttf', 32)
+restartBtn = Button('assets/images/btn/restartBtnImg.png',(100,200),2)
 
 start_screen()
 main_game_loop(screen)
