@@ -1,5 +1,6 @@
 import pygame
 import random
+import os
 
 # Lazer Showdown - A Grid-Based Laser Reflection Game
 # --------------------------------------------------
@@ -14,7 +15,7 @@ GRID_WIDTH = 4
 CELL_SIZE = 100  # Each grid cell has a fixed size
 TOP_MARGIN = 100  # Margin at the top
 PALETTE_BOX_SIZE = CELL_SIZE  # Size of each palette box
-BUTTON_WIDTH, BUTTON_HEIGHT = 170, 50  # Restart button dimensions
+BUTTON_WIDTH, BUTTON_HEIGHT = 128, 64  # Restart button dimensions
 
 # Colors
 BLACK = (0, 0, 0)
@@ -24,36 +25,49 @@ LIGHT_BLUE = (173, 216, 230)
 PINK = (255, 182, 193)  # Color for point pieces
 GRAY = (100, 100, 100)  # Color for mirror pieces
 
+PATH = os.path.abspath(".") + "/"
+
 score = 0  # Player's score
 game_state = {}  # Dictionary to save game state
 
 class Button:
-    def __init__(self, image_path, position, scale = 1.0):
+    def __init__(self, image_path, position, scale=1.0):
         self.image = pygame.image.load(image_path).convert_alpha()
         original_width = self.image.get_width()
         original_height = self.image.get_height()
         new_width = int(original_width * scale)
         new_height = int(original_height * scale)
-        self.image = pygame.transform.smoothscale(self.image, (new_width, new_height))
-        self.rect = self.image.get_rect(topleft = position)
+        self.image = pygame.transform.scale(self.image, (new_width, new_height))
+        self.rect = self.image.get_rect(center=position)
         self.pressed = False
 
-    def draw(self, window):
-        window.blit(self.image, self.rect)
+    def draw(self, screen):
+        screen.blit(self.image, self.rect)
 
     def is_pressed(self):
         mouse_pos = pygame.mouse.get_pos()
         mouse_pressed = pygame.mouse.get_pressed()[0]
 
-        if self.rect.collidepoint(mouse_pos): 
-            if mouse_pressed and not self.pressed:
-                self.pressed = True
-                return True
+        touch_events = [event for event in pygame.event.get(pygame.FINGERDOWN)]
+        touch_pos = None
+        if touch_events:
+            first_touch = touch_events[0]
+            touch_pos = (int(first_touch.x * screen.get_width()), int(first_touch.y * screen.get_height()))
 
-        if not mouse_pressed:
-            self.pressed = False 
+        # Detect mouse or touch press
+        press_detected = (mouse_pressed and self.rect.collidepoint(mouse_pos)) or (touch_pos and self.rect.collidepoint(touch_pos))
 
-        return False 
+        if press_detected and not self.pressed:
+            self.pressed = True
+            return True
+
+        # Reset when neither mouse nor touch is pressed
+        if not mouse_pressed and not touch_events:
+            self.pressed = False
+
+        return False
+
+        
 
 def reset_game():  
     """Resets the game by reinitializing pieces and resetting the score."""
@@ -64,10 +78,11 @@ def reset_game():
     lzrpiece = lazerPiece(x_origin, 150)
     pntpiece = [pointPiece(x_origin, 250, 20), pointPiece(x_origin, 350, 30), pointPiece(x_origin, 450, 50)]   
     mirrpiece = [mirrorPiece(x_origin, 550, "/"), mirrorPiece(x_origin, 650, "\\")]
-    dice_list = [Dice(200 - CELL_SIZE // 2, (scrHeight // 2) - CELL_SIZE // 2),Dice(200 - CELL_SIZE // 2, ((scrHeight // 2) + 200) - CELL_SIZE // 2)]
+    dice_list = [Dice(200 - CELL_SIZE // 2, ((scrHeight // 2) + 350) - CELL_SIZE // 2),Dice(200 - CELL_SIZE // 2, ((scrHeight // 2) + 200) - CELL_SIZE // 2)]
     
     score = 0
     save_game_state()
+    redraw_scene()
     
 def get_dimensions():
     """Returns the current screen dimensions."""
@@ -129,7 +144,11 @@ def redraw_scene():
         piece.draw(screen)
     for dice in dice_list:
         dice.draw(screen)
-    draw_restart_button()
+    #draw_restart_button()
+    restartBtn.draw(screen)
+    rollBtn.draw(screen)
+    fireBtn.draw(screen)
+    rotateBtn.draw(screen)
     draw_scoreboard()
     pygame.display.flip()
 
@@ -204,10 +223,10 @@ class lazerPiece(Piece):
         self.grid_position = None
         self.direction = "up"
         self.og_img = self.image
-        self.lzrBeamImg = pygame.image.load('assets/images/lzrBeamImg.png')  # Load your laser sprite image
+        self.lzrBeamImg = pygame.image.load(PATH + 'assets/images/lzrBeamImg.png')  # Load your laser sprite image
         self.lzrBeamImg = pygame.transform.scale(self.lzrBeamImg, (CELL_SIZE, CELL_SIZE))  # Scale the sprite if needed
 
-        self.lzrBeamstrtImg = pygame.image.load('assets/images/lzrBeamstrtImg.png')  # Load your laser sprite image
+        self.lzrBeamstrtImg = pygame.image.load(PATH + 'assets/images/lzrBeamstrtImg.png')  # Load your laser sprite image
         self.lzrBeamstrtImg = pygame.transform.scale(self.lzrBeamstrtImg, (CELL_SIZE, CELL_SIZE))  # Scale the sprite if needed   
     def draw(self, surface):
         """Draws the piece on the given surface."""
@@ -393,11 +412,13 @@ class mirrorPiece(Piece):
             self.image = pygame.transform.flip(self.og_img, True, False)
             screen.blit(self.image, self.rect.topleft)
 
+
+
 def start_screen():
     """Displays the start screen."""
     screen.fill(BLACK)  # Clear the screen
-    title_font = pygame.font.Font('assets/fonts/Font.ttf', 72)
-    subtitle_font = pygame.font.Font('assets/fonts/Font.ttf', 32)
+    title_font = pygame.font.Font(PATH + 'assets/fonts/Font.ttf', 72)
+    subtitle_font = pygame.font.Font(PATH + 'assets/fonts/Font.ttf', 32)
 
 
     # Logo
@@ -426,11 +447,7 @@ def start_screen():
         
 
     # Start Button
-    button_rect = pygame.Rect(screen.get_width() // 2 - CELL_SIZE, 700, 200, 50)
-    pygame.draw.rect(screen, GRAY, button_rect, border_radius=10)
-    start_button_text = subtitle_font.render("Start", True, WHITE)
-    screen.blit(start_button_text, (screen.get_width() // 2 - start_button_text.get_width() // 2, 710))
-
+    startBtn.draw(screen)
     pygame.display.flip()  # Update the screen to show the start screen
 
     # Event loop for the start screen
@@ -440,8 +457,7 @@ def start_screen():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 exit()  # Exit the game entirely
-            elif event.type == pygame.MOUSEBUTTONDOWN:
-                if button_rect.collidepoint(event.pos):
+            elif startBtn.is_pressed():
                     waiting_for_input = False  # Exit the start screen loop to start the game
 
 
@@ -450,6 +466,7 @@ def main_game_loop(screen):
     reset_game()
     draggable_piece = None
     running = True
+    restartBtn.draw(screen)
     while running:
         redraw_scene()
 
@@ -464,8 +481,8 @@ def main_game_loop(screen):
                 redraw_scene()  # Redraw to fit new window size
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 # Check if the reset button was clicked
-                if button_x <= event.pos[0] <= button_x + BUTTON_WIDTH and button_y <= event.pos[1] <= button_y + BUTTON_HEIGHT:
-                #if restartBtn.is_pressed():
+                #if button_x <= event.pos[0] <= button_x + BUTTON_WIDTH and button_y <= event.pos[1] <= button_y + BUTTON_HEIGHT:
+                if restartBtn.is_pressed():
                     reset_game()
                 else:
                     # Iterate through pieces in reverse order to select the top-most one
@@ -501,12 +518,22 @@ def main_game_loop(screen):
                     for dice in dice_list:
                         dice.roll()  # Rotate the laser when 'R' is pressed
                     
+        if fireBtn.is_pressed():
+            lzrpiece.fire_laser()  # Fire the laser when Btn is pressed
+        if rotateBtn.is_pressed():
+            lzrpiece.rotate_laser()  # Fire the laser when Btn is pressed
+        if rollBtn.is_pressed():
+            for dice in dice_list:
+                dice.roll()  # Roll the dice when Btn is pressed
+        if restartBtn.is_pressed():
+            reset_game()
+                    
 # Dice Class
 class Dice(pygame.sprite.Sprite):
     """ two dice on the side of the board for random number gen"""
     def __init__(self, x, y):
         super().__init__()
-        self.images = [pygame.image.load(f'assets/images/dice/{i}.png') for i in range(1, 7)]
+        self.images = [pygame.image.load(PATH + f'assets/images/dice/{i}.png') for i in range(1, 7)]
         self.images = [pygame.transform.scale(self.images[i], (CELL_SIZE, CELL_SIZE)) for i in range(0, 6)]
         self.value = random.randint(0, 5)
         self.image = self.images[self.value]
@@ -529,11 +556,18 @@ class Dice(pygame.sprite.Sprite):
 
 pygame.init()
 screen = pygame.display.set_mode((1500, 1000), pygame.RESIZABLE)
-icon = pygame.image.load('assets/images/icon.ico')
+icon = pygame.image.load(PATH + 'assets/images/icon.ico')
 pygame.display.set_caption("Lazer Showdown")
 pygame.display.set_icon(icon)
-font = pygame.font.Font('assets/fonts/Font.ttf', 32)
-restartBtn = Button('assets/images/btn/restartBtnImg.png',(100,200),2)
+font = pygame.font.Font(PATH + 'assets/fonts/Font.ttf', 32)
+
+# Create buttons using the common button sprite
+startBtn = Button(PATH + 'assets/images/btn/StartBtnImg.png', (screen.get_width() // 2, 750), 1)
+
+fireBtn = Button(PATH + 'assets/images/btn/FireBtnImg.png', (200, 200), 1.5)
+rotateBtn = Button(PATH + 'assets/images/btn/RotateBtnImg.png', (200, 300), 1.5)
+rollBtn = Button(PATH + 'assets/images/btn/RollBtnImg.png', (200, 400), 1.5)
+restartBtn = Button(PATH + 'assets/images/btn/RestartBtnImg.png', (200, 550), 1.5)
 
 start_screen()
 main_game_loop(screen)
