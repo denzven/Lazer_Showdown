@@ -562,7 +562,7 @@ pygame.display.set_icon(icon)
 font = pygame.font.Font(PATH + 'assets/fonts/Font.ttf', 32)
 
 # Create buttons using the common button sprite
-startBtn = Button(PATH + 'assets/images/btn/StartBtnImg.png', (screen.get_width() // 2, 750), 1)
+startBtn = Button(PATH + 'assets/images/btn/StartBtnImg.png', (screen.get_width() // 2, 750), 1.5)
 
 fireBtn = Button(PATH + 'assets/images/btn/FireBtnImg.png', (200, 200), 1.5)
 rotateBtn = Button(PATH + 'assets/images/btn/RotateBtnImg.png', (200, 300), 1.5)
