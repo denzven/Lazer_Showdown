@@ -1,6 +1,9 @@
 import pygame
 import random
 import os
+from os import environ
+from sys import platform as _sys_platform
+
 
 # Lazer Showdown - A Grid-Based Laser Reflection Game
 # --------------------------------------------------
@@ -25,7 +28,20 @@ LIGHT_BLUE = (173, 216, 230)
 PINK = (255, 182, 193)  # Color for point pieces
 GRAY = (100, 100, 100)  # Color for mirror pieces
 
-PATH = os.path.abspath(".") + "/"
+def platform():
+    if 'ANDROID_ARGUMENT' in environ:
+        return "android"
+    elif _sys_platform in ('linux', 'linux2','linux3'):
+        return "linux"
+    elif _sys_platform in ('win32', 'cygwin'):
+        return 'win'
+
+if platform()=="android":
+    PATH="/data/data/org.test.pgame/files/app/"
+elif platform()=="linux":
+    PATH="./"
+else:
+    PATH = os.path.abspath(".") + "/"
 
 score = 0  # Player's score
 game_state = {}  # Dictionary to save game state
