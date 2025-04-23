@@ -5,6 +5,28 @@ import sys
 import json
 import uuid
 
+"""
+Lazer Showdown Game Module
+
+Welcome to Lazer Showdown—a dynamic, grid-based puzzle of precision and strategy. The player begins with a red laser emitter on the right-hand palette, along with angled mirrors and point pieces valued at 20, 30, or 50 points. Drag and place these elements onto an 8×8 board to chart the perfect beam path:
+
+- Position and rotate the laser emitter to aim your shot.
+- Place mirrors ("/" or "\") to reflect the beam.
+- Collect point pieces by directing the laser through them before it exits the grid.
+- Roll dice to introduce random events, and use undo/redo to refine your strategy.
+
+Controls:
+  • Drag with the mouse to move pieces; right-click to place.
+  • Press R or the Rotate button to spin the laser emitter.
+  • Press SPACE or the Fire button to launch the beam.
+  • Press D or the Roll button to shake the dice.
+  • Press Z/Y for undo/redo moves.
+  • Press S/L to save or load your game.
+
+Master the art of reflection, maximize your score, and outsmart each puzzle in Lazer Showdown!
+"""
+
+# Constants for grid and UI layout
 GRID_SIZE = 8
 GRID_WIDTH = 4
 CELL_SIZE = 100
@@ -12,6 +34,7 @@ TOP_MARGIN = 100
 PALETTE_BOX_SIZE = CELL_SIZE
 BUTTON_WIDTH, BUTTON_HEIGHT = 128, 64
 
+# Color definitions
 BLACK = (0, 0, 0)
 WHITE = (255, 255, 255)
 RED = (200, 50, 50)
@@ -20,6 +43,12 @@ PINK = (255, 182, 193)
 GRAY = (100, 100, 100)
 
 def platform():
+    """
+    Detect current running platform.
+
+    Returns:
+        str: One of 'android', 'linux', or 'win' indicating platform type.
+    """
     if 'ANDROID_ARGUMENT' in os.environ:
         return "android"
     elif sys.platform in ('linux', 'linux2', 'linux3'):
@@ -27,6 +56,7 @@ def platform():
     elif sys.platform in ('win32', 'cygwin'):
         return 'win'
 
+# Determine asset path based on platform
 if platform() == "android":
     PATH = "/data/data/org.test.pgame/files/app/"
 elif platform() == "linux":
@@ -35,7 +65,27 @@ else:
     PATH = os.path.abspath(".") + "/"
 
 class Button:
+    """
+    UI button representation supporting mouse and touch interaction.
+
+    Attributes:
+        image (Surface): Pygame surface for the button graphic.
+        rect (Rect): Rectangle defining button position and size.
+        pressed (bool): Internal state to debounce press events.
+
+    Methods:
+        draw(screen): Render the button on the given screen surface.
+        is_pressed(): Return True once when the button is pressed.
+    """
     def __init__(self, image_path, position, scale=1.0):
+        """
+        Initialize a Button instance.
+
+        Args:
+            image_path (str): Path to the button image file.
+            position (tuple): (x, y) coordinates for the button center.
+            scale (float): Scale factor for the button image.
+        """
         self.image = pygame.image.load(image_path).convert_alpha()
         w, h = self.image.get_width(), self.image.get_height()
         self.image = pygame.transform.scale(self.image, (int(w * scale), int(h * scale)))
@@ -43,9 +93,23 @@ class Button:
         self.pressed = False
 
     def draw(self, screen):
+        """
+        Draw the button on the given screen.
+
+        Args:
+            screen (Surface): Pygame display surface.
+        """
         screen.blit(self.image, self.rect)
 
     def is_pressed(self):
+        """
+        Check if the button has been pressed this frame.
+
+        Supports mouse click and touch events.
+
+        Returns:
+            bool: True if the button transitioned to pressed state.
+        """
         mouse_pos = pygame.mouse.get_pos()
         mouse_pressed = pygame.mouse.get_pressed()[0]
         touch_events = [e for e in pygame.event.get(pygame.FINGERDOWN)]
@@ -62,7 +126,26 @@ class Button:
         return False
 
 class GameState:
+    """
+    Encapsulates the dynamic state of the game including pieces, score, and dice.
+
+    Attributes:
+        score (int): Current player score.
+        laser_piece (lazerPiece): The player's laser piece.
+        point_pieces (list): List of pointPiece instances on the palette or board.
+        mirror_pieces (list): List of mirrorPiece instances on the palette or board.
+        dice_list (list): List of Dice objects representing game dice.
+
+    Methods:
+        reset(palette_origin): Reset to initial state and populate palette.
+        get_all_pieces(): Return all game pieces for rendering or interaction.
+        save(): Serialize state to a dictionary for persistence.
+        load(serialized): Load state from a serialized dictionary.
+    """
     def __init__(self):
+        """
+        Create a fresh GameState with default empty values.
+        """
         self.score = 0
         self.laser_piece = None
         self.point_pieces = []
@@ -70,6 +153,12 @@ class GameState:
         self.dice_list = []
 
     def reset(self, palette_origin):
+        """
+        Initialize or reset state with default pieces at the palette origin.
+
+        Args:
+            palette_origin (int): X-coordinate offset for the palette column.
+        """
         self.score = 0
         self.laser_piece = lazerPiece(palette_origin, 150)
         self.point_pieces = [
@@ -87,9 +176,21 @@ class GameState:
         ]
 
     def get_all_pieces(self):
+        """
+        Gather all pieces (laser, points, mirrors) in a single list.
+
+        Returns:
+            list: Combined list of the laser and other pieces.
+        """
         return [self.laser_piece] + self.point_pieces + self.mirror_pieces
 
     def save(self):
+        """
+        Serialize the current game state to a dictionary.
+
+        Returns:
+            dict: Dictionary containing score, piece positions, types, and dice values.
+        """
         return {
             'score': self.score,
             'laser': {'pos': self.laser_piece.grid_position, 'dir': self.laser_piece.direction, 'palette': self.laser_piece.palette_position},
@@ -99,6 +200,12 @@ class GameState:
         }
 
     def load(self, s):
+        """
+        Load game state from a serialized dictionary.
+
+        Args:
+            s (dict): Serialized state from a previous save().
+        """
         self.score = s.get('score', 0)
         li = s.get('laser', {})
         if li and self.laser_piece:
@@ -131,7 +238,39 @@ class GameState:
             d.image = d.images[d.value]
 
 class GameManager:
+    """
+    Coordinates rendering, user input, undo/redo, and save/load operations.
+
+    Attributes:
+        screen (Surface): Main display surface.
+        state (GameState): Current game state instance.
+        font (Font): Font used for UI text rendering.
+        undo_stack (list): History stack for undo operations.
+        redo_stack (list): History stack for redo operations.
+        save_folder (str): Directory path for saving game files.
+
+    Methods:
+        get_dimensions(): Return screen size.
+        get_grid_origin(): Calculate top-left origin of the game grid.
+        reset_game(): Initialize a new game session.
+        draw_grid(): Draw the square grid lines on screen.
+        draw_palette(): Render the piece palette UI.
+        draw_scoreboard(): Display current score.
+        redraw_scene(): Clear and redraw entire game UI.
+        save_state(): Push current state to undo stack.
+        undo(): Revert to previous state.
+        redo(): Apply next state from redo stack.
+        save_to_file(filename=None): Write serialized state to JSON file.
+        choose_save_file(): Show UI to pick a save JSON file.
+        load_from_file(filename=None): Load state from selected JSON file.
+    """
     def __init__(self, screen):
+        """
+        Initialize GameManager with provided display surface.
+
+        Args:
+            screen (Surface): Pygame display to render to.
+        """
         self.screen = screen
         self.state = GameState()
         self.font = pygame.font.Font(PATH + 'assets/fonts/Font.ttf', 32)
@@ -139,13 +278,29 @@ class GameManager:
         self.redo_stack = []
         self.save_folder = PATH + "savedgames/"
 
-    def get_dimensions(self): return self.screen.get_size()
+    def get_dimensions(self):
+        """
+        Retrieve current window dimensions.
+
+        Returns:
+            tuple: (width, height) of the screen surface.
+        """
+        return self.screen.get_size()
 
     def get_grid_origin(self):
+        """
+        Compute top-left pixel coordinates for the grid.
+
+        Returns:
+            tuple: (x_offset, y_offset) for grid drawing.
+        """
         w, h = self.get_dimensions()
         return (w//2 - (GRID_SIZE//2)*CELL_SIZE, h//2 - (GRID_SIZE//2)*CELL_SIZE)
 
     def reset_game(self):
+        """
+        Reset game state and clear relevant UI regions for a new session.
+        """
         w, h = self.get_dimensions()
         po = (w//2 + (GRID_SIZE//2)*CELL_SIZE) + CELL_SIZE
         pygame.draw.rect(self.screen, BLACK, (po, 0, CELL_SIZE, h))
@@ -153,12 +308,18 @@ class GameManager:
         self.redraw_scene()
 
     def draw_grid(self):
+        """
+        Render the background grid lines on the screen.
+        """
         xo, yo = self.get_grid_origin()
         for i in range(GRID_SIZE+1):
             pygame.draw.line(self.screen, WHITE, (xo, yo + i*CELL_SIZE), (xo + GRID_SIZE*CELL_SIZE, yo + i*CELL_SIZE), GRID_WIDTH)
             pygame.draw.line(self.screen, WHITE, (xo + i*CELL_SIZE, yo), (xo + i*CELL_SIZE, yo + GRID_SIZE*CELL_SIZE), GRID_WIDTH)
 
     def draw_palette(self):
+        """
+        Render the border and slots for draggable pieces.
+        """
         w, h = self.get_dimensions()
         xo = (w//2 + (GRID_SIZE//2)*CELL_SIZE) + CELL_SIZE
         pygame.draw.rect(self.screen, BLACK, (xo, 0, CELL_SIZE, h), GRID_WIDTH)
@@ -166,10 +327,16 @@ class GameManager:
             pygame.draw.rect(self.screen, WHITE, (xo, y, PALETTE_BOX_SIZE, PALETTE_BOX_SIZE), GRID_WIDTH)
 
     def draw_scoreboard(self):
+        """
+        Draw the current score text on screen.
+        """
         t = self.font.render(f"Score: {self.state.score}", True, WHITE)
         self.screen.blit(t, (50,50))
 
     def redraw_scene(self):
+        """
+        Clear screen and draw palette, grid, pieces, buttons, and scoreboard.
+        """
         self.screen.fill(BLACK)
         self.draw_palette(); self.draw_grid()
         self.state.laser_piece.draw(self.screen)
@@ -182,20 +349,44 @@ class GameManager:
 
     @staticmethod
     def get_grid_origin_static():
+        """
+        Static version of get_grid_origin using current display surface.
+
+        Returns:
+            tuple: (x_offset, y_offset) for grid drawing based on active display.
+        """
         s=pygame.display.get_surface(); w,h=s.get_size()
         return (w//2 - (GRID_SIZE//2)*CELL_SIZE, h//2 - (GRID_SIZE//2)*CELL_SIZE)
 
-    def save_state(self): self.undo_stack.append(self.state.save()); self.redo_stack.clear()
+    def save_state(self):
+        """
+        Push current serialized state onto the undo stack and clear redo stack.
+        """
+        self.undo_stack.append(self.state.save()); self.redo_stack.clear()
+
     def undo(self):
+        """
+        Restore previous state from undo stack, pushing current to redo stack.
+        """
         if self.undo_stack:
             self.redo_stack.append(self.state.save())
             prev=self.undo_stack.pop(); self.state.load(prev); self.redraw_scene()
+
     def redo(self):
+        """
+        Reapply next state from redo stack, pushing current to undo stack.
+        """
         if self.redo_stack:
             self.undo_stack.append(self.state.save())
             nxt=self.redo_stack.pop(); self.state.load(nxt); self.redraw_scene()
 
     def save_to_file(self, filename=None):
+        """
+        Write current state to a JSON file in the save folder.
+
+        Args:
+            filename (str, optional): Specific filename to save to.
+        """
         if filename is None:
             code=uuid.uuid4().hex[:8]
             filename=os.path.join(self.save_folder, f"lzrshwdn_{code}.json")
@@ -204,6 +395,12 @@ class GameManager:
         print(f"Game saved to {filename}")
 
     def choose_save_file(self):
+        """
+        Display a scrollable UI list of saved game files for selection.
+
+        Returns:
+            str or None: Path to the selected save file, or None if cancelled.
+        """
         folder=os.path.join(self.save_folder); os.makedirs(folder,exist_ok=True)
         files=[f for f in os.listdir(folder) if f.endswith(".json")]
         if not files: return None
@@ -235,6 +432,12 @@ class GameManager:
             clock.tick(30)
 
     def load_from_file(self, filename=None):
+        """
+        Load game state from a chosen JSON file and clear history stacks.
+
+        Args:
+            filename (str, optional): Specific file to load, or prompts UI if None.
+        """
         if filename is None:
             filename=self.choose_save_file()
             if not filename: return
@@ -243,7 +446,32 @@ class GameManager:
         self.state.load(snapshot); self.redraw_scene(); print(f"Game loaded from {filename}")
 
 class Piece:
+    """
+    Base class for draggable pieces with grid snapping support.
+
+    Attributes:
+        grid_position (tuple): (x, y) cell coordinates on board, or None.
+        palette_position (tuple): Pixel position in palette when not on board.
+        color (tuple): RGB color for rectangle fallback.
+        image (Surface): Optional image for the piece.
+        rect (Rect): Pygame rect for drawing and collision.
+        dragging (bool): Flag indicating if piece is being dragged.
+
+    Methods:
+        draw(surface): Render piece at current rect.
+        update_position_from_grid(): Update rect based on grid_position or palette_position.
+        snap_to_grid(occupied): Snap rect to nearest empty grid cell.
+    """
     def __init__(self,x,y,color,image_path=None):
+        """
+        Initialize a Piece at palette coordinates or load image.
+
+        Args:
+            x (int): X pixel coordinate in palette.
+            y (int): Y pixel coordinate in palette.
+            color (tuple): RGB tuple for fallback drawing.
+            image_path (str, optional): Path to an image file.
+        """
         self.grid_position=None; self.palette_position=(x,y); self.update_position_from_grid()
         self.color=color; self.dragging=False; self.image=None
         if image_path:
@@ -251,15 +479,30 @@ class Piece:
             self.image=pygame.transform.scale(self.image,(CELL_SIZE,CELL_SIZE))
         self.rect=pygame.Rect(x,y,CELL_SIZE,CELL_SIZE)
     def draw(self,surface):
+        """
+        Draw the piece on a surface using image or colored rect.
+
+        Args:
+            surface (Surface): Pygame surface to draw on.
+        """
         if self.image: surface.blit(self.image,self.rect.topleft)
         else: pygame.draw.rect(surface,self.color,self.rect)
     def update_position_from_grid(self):
+        """
+        Update rect position based on grid alignment or palette origin.
+        """
         if self.grid_position:
             xo,yo=GameManager.get_grid_origin_static()
             self.rect=pygame.Rect(xo+self.grid_position[0]*CELL_SIZE,yo+self.grid_position[1]*CELL_SIZE,CELL_SIZE,CELL_SIZE)
         else:
             self.rect=pygame.Rect(self.palette_position[0],self.palette_position[1],CELL_SIZE,CELL_SIZE)
     def snap_to_grid(self,occupied):
+        """
+        Attempt to snap piece center to nearest grid cell if free.
+
+        Args:
+            occupied (set): Set of grid positions already taken.
+        """
         xo,yo=GameManager.get_grid_origin_static()
         gx=(self.rect.x-xo+CELL_SIZE//2)//CELL_SIZE; gy=(self.rect.y-yo+CELL_SIZE//2)//CELL_SIZE
         if 0<=gx<GRID_SIZE and 0<=gy<GRID_SIZE and (gx,gy) not in occupied: self.grid_position=(gx,gy)
@@ -267,21 +510,69 @@ class Piece:
         self.update_position_from_grid()
 
 class lazerPiece(Piece):
+    """
+    Special piece representing the laser emitter controlled by player.
+
+    Attributes:
+        direction (str): One of 'up', 'down', 'left', 'right'.
+        og_img (Surface): Original oriented image for rotation.
+        lzrBeamImg (Surface): Beam segment image.
+        lzrBeamstrtImg (Surface): Beam start image.
+
+    Methods:
+        draw(screen): Render laser piece oriented correctly.
+        rotate_laser(): Cycle laser direction clockwise.
+        rotate_img_direction(): Rotate sprite based on direction.
+        fire_laser(gs): Trace and animate laser path on board state.
+        calculate_laser_path(gs): Compute beam path until exit or hit.
+        apply_laser_effects(gs,path): Apply scoring or removal effects.
+        draw_laser_path(path): Animate beam segments visually.
+        reflect_laser(d,mt): Reflect direction on mirror interaction.
+        _dir_to_delta(d): Convert direction to grid delta.
+    """
     def __init__(self,x,y):
+        """
+        Initialize laser piece at palette location.
+
+        Args:
+            x (int): X pixel coordinate in palette.
+            y (int): Y pixel coordinate in palette.
+        """
         super().__init__(x,y,RED,image_path="assets/images/lzrImg.png")
         self.grid_position=None; self.direction="up"; self.og_img=self.image
         self.lzrBeamImg=pygame.transform.scale(pygame.image.load(PATH+'assets/images/lzrBeamImg.png'),(CELL_SIZE,CELL_SIZE))
         self.lzrBeamstrtImg=pygame.transform.scale(pygame.image.load(PATH+'assets/images/lzrBeamstrtImg.png'),(CELL_SIZE,CELL_SIZE))
-    def draw(self,screen): self.rotate_img_direction(); screen.blit(self.image,self.rect.topleft)
+    def draw(self,screen):
+        self.rotate_img_direction(); screen.blit(self.image,self.rect.topleft)
     def rotate_laser(self):
+        """
+        Rotate laser direction 90 degrees clockwise.
+        """
         dirs=["up","right","down","left"]; idx=dirs.index(self.direction); self.direction=dirs[(idx+1)%4]
     def rotate_img_direction(self):
+        """
+        Rotate piece sprite to match current direction.
+        """
         ang={"up":0,"down":180,"left":90,"right":-90}[self.direction]
         self.image=pygame.transform.rotate(self.og_img,ang); self.rect=self.image.get_rect(center=self.rect.center)
     def fire_laser(self,gs):
+        """
+        Trigger laser path tracing, effects, and animation.
+
+        Args:
+            gs (GameState): Current game state.
+        """
         if not self.grid_position: return
         path=self.calculate_laser_path(gs); self.apply_laser_effects(gs,path); self.draw_laser_path(path)
     def calculate_laser_path(self,gs):
+        """
+        Compute sequence of pixel coordinates for beam through grid.
+
+        Args:
+            gs (GameState): Current game state.
+        Returns:
+            list[tuple]: Ordered list of beam segment center points.
+        """
         x,y=self.grid_position; d=self.direction; xo,yo=GameManager.get_grid_origin_static()
         path=[]; dx,dy=self._dir_to_delta(d); x+=dx; y+=dy
         while 0<=x<GRID_SIZE and 0<=y<GRID_SIZE:
@@ -295,46 +586,156 @@ class lazerPiece(Piece):
         return path
     def apply_laser_effects(self,gs,path): pass
     def draw_laser_path(self,path):
+        """
+        Animate beam segments along computed path.
+
+        Args:
+            path (list[tuple]): Beam segment coordinates.
+        """
         pygame.display.flip(); pygame.time.delay(100)
         for i in range(len(path)-1):
             s=path[i]; e=path[i+1]
             v=pygame.math.Vector2(e[0]-s[0],e[1]-s[1]); ang=v.angle_to(pygame.math.Vector2(1,0))
-            spr=pygame.transform.rotate(self.lzrBeamImg,ang); screen.blit(spr,pygame.Rect(spr.get_rect(center=s).topleft,()).topleft)
+            spr=pygame.transform.rotate(self.lzrBeamImg,ang); surface=pygame.display.get_surface(); surface.blit(spr,pygame.Rect(spr.get_rect(center=s).topleft,()).topleft)
             if i==0:
-                st=pygame.transform.rotate(self.lzrBeamstrtImg,ang); screen.blit(st,st.get_rect(center=s).topleft)
+                st=pygame.transform.rotate(self.lzrBeamstrtImg,ang); surface.blit(st,st.get_rect(center=s).topleft)
             pygame.display.flip(); pygame.time.delay(100)
     def reflect_laser(self,d,mt):
+        """
+        Reflect laser direction based on mirror type.
+
+        Args:
+            d (str): Incoming direction.
+            mt (str): Mirror type, '/' or '\\'.
+        Returns:
+            str: New direction after reflection.
+        """
         if mt=="/": return {"up":"left","down":"right","left":"up","right":"down"}[d]
         return {"up":"right","down":"left","left":"down","right":"up"}[d]
-    def _dir_to_delta(self,d): return {"up":(0,-1),"down":(0,1),"left":(-1,0),"right":(1,0)}[d]
+    def _dir_to_delta(self,d):
+        """
+        Map direction string to grid coordinate delta.
+
+        Args:
+            d (str): Direction keyword.
+        Returns:
+            tuple: (dx, dy) movement in grid spaces.
+        """
+        return {"up":(0,-1),"down":(0,1),"left":(-1,0),"right":(1,0)}[d]
 
 class pointPiece(Piece):
-    def __init__(self,x,y,val): super().__init__(x,y,PINK,image_path=self.get_image_path(val)); self.value=val
+    """
+    Piece awarding score values when hit by laser.
+
+    Attributes:
+        value (int): Point value for this piece.
+
+    Methods:
+        get_image_path(value): Return image path for given point value.
+    """
+    def __init__(self,x,y,val):
+        """
+        Initialize a scoring piece at palette.
+
+        Args:
+            x (int): X pixel coordinate in palette.
+            y (int): Y pixel coordinate in palette.
+            val (int): Point value (20, 30, or 50).
+        """
+        super().__init__(x,y,PINK,image_path=self.get_image_path(val))
+        self.value=val
     def get_image_path(self,v):
+        """
+        Map point value to the corresponding asset path.
+
+        Args:
+            v (int): Numeric point value.
+        Returns:
+            str: Relative path to image file.
+        """
         return {20:"assets/images/pntImg20.png",30:"assets/images/pntImg30.png",50:"assets/images/pntImg50.png"}.get(v,"assets/images/pntDefImg.png")
 
 class mirrorPiece(Piece):
-    
-    def __init__(self,x,y,mt="/"): super().__init__(x,y,GRAY,image_path="assets/images/mirrImg.png"); self.mirror_type=mt; self.grid_position=None; self.og_img=self.image
+    """
+    Reflective piece that changes laser direction upon contact.
+
+    Attributes:
+        mirror_type (str): '/' or '\\' specifying orientation.
+        og_img (Surface): Original sprite for flipping.
+
+    Methods:
+        draw(screen): Render mirror oriented correctly.
+    """
+    def __init__(self,x,y,mt="/"):
+        """
+        Initialize a mirror piece at palette.
+
+        Args:
+            x (int): X pixel coordinate in palette.
+            y (int): Y pixel coordinate in palette.
+            mt (str): Mirror type character ('/' or '\\').
+        """
+        super().__init__(x,y,GRAY,image_path="assets/images/mirrImg.png")
+        self.mirror_type=mt; self.grid_position=None; self.og_img=self.image
     def draw(self,screen):
+        """
+        Draw the mirror, flipped horizontally if needed.
+
+        Args:
+            screen (Surface): Pygame display surface.
+        """
         if self.mirror_type=="/": screen.blit(self.image,self.rect.topleft)
         else: screen.blit(pygame.transform.flip(self.og_img,True,False),self.rect.topleft)
 
 class Dice(pygame.sprite.Sprite):
+    """
+    Six-sided die with random roll behavior and image representation.
+
+    Attributes:
+        images (list): Six images for faces 1-6.
+        value (int): Current face index (0-5).
+        image (Surface): Currently displayed face image.
+        rect (Rect): Position and size on screen.
+
+    Methods:
+        roll(): Randomly choose a new face value.
+        draw(surface): Render die face to surface.
+    """
     def __init__(self,x,y):
+        """
+        Load dice face images and initialize random face.
+
+        Args:
+            x (int): X pixel coordinate on board.
+            y (int): Y pixel coordinate on board.
+        """
         super().__init__()
         self.images=[pygame.transform.scale(pygame.image.load(PATH+f'assets/images/dice/{i}.png'),(CELL_SIZE,CELL_SIZE)) for i in range(1,7)]
         self.value=random.randint(0,5); self.image=self.images[self.value]; self.rect=self.image.get_rect(x=x,y=y)
-    def roll(self): self.value=random.randint(0,5); self.image=self.images[self.value]
+    def roll(self):
+        """
+        Change the die to a new random face and update image.
+        """
+        self.value=random.randint(0,5); self.image=self.images[self.value]
     def draw(self,surface):
+        """
+        Draw the current die face or fallback rectangle.
+
+        Args:
+            surface (Surface): Pygame surface to render on.
+        """
         if self.image: surface.blit(self.image,self.rect.topleft)
         else: pygame.draw.rect(surface,RED,self.rect)
 
 def start_screen():
+    """
+    Display the game's start/title screen and wait for user to begin.
+    """
     screen.fill(BLACK)
     title_f=pygame.font.Font(PATH+'assets/fonts/Font.ttf',72)
     sub_f=pygame.font.Font(PATH+'assets/fonts/Font.ttf',32)
-    logo=pygame.transform.scale(pygame.image.load("assets/images/logo.png"),(768,192)); screen.blit(logo,(screen.get_width()//2-logo.get_width()//2,50))
+    logo=pygame.transform.scale(pygame.image.load("assets/images/logo.png"),(768,192))
+    screen.blit(logo,(screen.get_width()//2-logo.get_width()//2,50))
     screen.blit(title_f.render("Lazer Showdown",True,WHITE),(screen.get_width()//2-title_f.size("Lazer Showdown")[0]//2,320))
     instr=["Click to Start","Press R to rotate the lazer","Press SPACE to fire the lazer","Press D to roll the dice","Pick pieces and mirrors with your mouse","Right-click to place pieces"]
     for i,line in enumerate(instr): screen.blit(sub_f.render(line,True,LIGHT_BLUE),(screen.get_width()//2-sub_f.size(line)[0]//2,400+i*40))
@@ -346,6 +747,12 @@ def start_screen():
             elif startBtn.is_pressed(): wait=False
 
 def main_game_loop(screen):
+    """
+    Main event loop handling game updates, rendering, and input.
+
+    Args:
+        screen (Surface): Pygame display surface to render game.
+    """
     mgr=GameManager(screen); mgr.reset_game(); state=mgr.state; draggable=None; running=True
     while running:
         mgr.redraw_scene(); occupied={p.grid_position for p in state.get_all_pieces() if p.grid_position}
@@ -378,7 +785,7 @@ def main_game_loop(screen):
         if rollBtn.is_pressed(): mgr.save_state(); [d.roll() for d in state.dice_list]
         if restartBtn.is_pressed(): mgr.save_state(); mgr.reset_game()
 
-
+# Entry point
 pygame.init()
 screen=pygame.display.set_mode((1500,1000),pygame.RESIZABLE)
 icon=pygame.image.load(PATH+'assets/images/icon.ico')
@@ -395,3 +802,5 @@ restartBtn=Button(PATH+'assets/images/btn/RestartBtnImg.png',(200,550),1.5)
 start_screen()
 main_game_loop(screen)
 pygame.quit()
+
+# Made with Love by Denzven 💜 & guided by ChatGPT 🤖
