@@ -1,0 +1,63 @@
+{
+  "score": 0,
+  "laser": {
+    "pos": null,
+    "dir": "up",
+    "palette": [
+      1250,
+      150
+    ]
+  },
+  "points": [
+    {
+      "pos": null,
+      "value": 20,
+      "palette": [
+        1250,
+        250
+      ]
+    },
+    {
+      "pos": null,
+      "value": 30,
+      "palette": [
+        1250,
+        350
+      ]
+    },
+    {
+      "pos": null,
+      "value": 50,
+      "palette": [
+        1250,
+        450
+      ]
+    }
+  ],
+  "mirrors": [
+    {
+      "pos": null,
+      "type": "/",
+      "palette": [
+        1250,
+        550
+      ]
+    },
+    {
+      "pos": null,
+      "type": "\\",
+      "palette": [
+        1250,
+        650
+      ]
+    }
+  ],
+  "dice": [
+    {
+      "value": 1
+    },
+    {
+      "value": 1
+    }
+  ]
+}
