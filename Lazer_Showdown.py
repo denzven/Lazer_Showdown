@@ -401,6 +401,9 @@ class GameManager:
         rollBtn.draw(self.screen)
         fireBtn.draw(self.screen)
         rotateBtn.draw(self.screen)
+        
+        loadBtn.draw(self.screen)
+        saveBtn.draw(self.screen)
         self.draw_scoreboard()
         pygame.display.flip()
 
@@ -932,44 +935,94 @@ class Dice(pygame.sprite.Sprite):
             pygame.draw.rect(surface, RED, self.rect)
 
 
+import math
+
+# Tips to display
+TIPS = [
+    "Tip: Reflect the beam to collect all point pieces!",
+    "Tip: Plan your path before firing." ,
+    "Tip: Use undo (Z) to refine your strategy.",
+    "Tip: Roll dice for random bonuses (D)."
+]
+
+TITLE_SIZE = 72
+SUB_SIZE = 32
+TIP_BASE_SIZE = 16
+
 def start_screen():
     """
     Display the game's start/title screen and wait for user to begin.
+    Tips float, rotate 45°, and heartbeat-pulsate in size from their center atop the logo.
     """
-    screen.fill(BLACK)
-    title_f = pygame.font.Font(PATH + "assets/fonts/Font.ttf", 72)
-    sub_f = pygame.font.Font(PATH + "assets/fonts/Font.ttf", 32)
-    logo = pygame.transform.scale(
-        pygame.image.load("assets/images/logo.png"), (768, 192)
-    )
-    screen.blit(logo, (screen.get_width() // 2 - logo.get_width() // 2, 50))
-    screen.blit(
-        title_f.render("Lazer Showdown", True, WHITE),
-        (screen.get_width() // 2 - title_f.size("Lazer Showdown")[0] // 2, 320),
-    )
+    clock = pygame.time.Clock()
+    tip_index = 0
+    tip_timer = 0.0
+
+    # Fonts
+    title_font = pygame.font.Font(PATH + "assets/fonts/Font.ttf", TITLE_SIZE)
+    sub_font = pygame.font.Font(PATH + "assets/fonts/Font.ttf", SUB_SIZE)
+    tip_font = pygame.font.Font(PATH + "assets/fonts/Font.ttf", TIP_BASE_SIZE)
+
+    # Screen dimensions
+    sw, sh = screen.get_size()
+    # Position logo
+    logo_rect = logo.get_rect(topleft=(sw // 2 - logo.get_width() // 2, 50))
+
+    # Instruction lines
     instr = [
-        "Click to Start",
-        "Press R to rotate the lazer",
-        "Press SPACE to fire the lazer",
-        "Press D to roll the dice",
+        "Click to Start", "Press R to rotate the laser",
+        "Press SPACE to fire the laser", "Press D to roll the dice",
         "Pick pieces and mirrors with your mouse",
-        "Right-click to place pieces",
+        "Right-click to place pieces"
     ]
-    for i, line in enumerate(instr):
-        screen.blit(
-            sub_f.render(line, True, LIGHT_BLUE),
-            (screen.get_width() // 2 - sub_f.size(line)[0] // 2, 400 + i * 40),
-        )
-    startBtn.draw(screen)
-    pygame.display.flip()
-    wait = True
-    while wait:
+
+    while True:
+        dt = clock.tick(60) / 1000.0
+        tip_timer += dt
+        if tip_timer > 4.0:
+            tip_timer -= 4.0
+            tip_index = (tip_index + 1) % len(TIPS)
+
         for e in pygame.event.get():
             if e.type == pygame.QUIT:
                 pygame.quit()
-                exit()
-            elif startBtn.is_pressed():
-                wait = False
+                sys.exit()
+
+        # Draw background and static elements
+        screen.fill(BLACK)
+        screen.blit(logo, logo_rect)
+        title_surf = title_font.render("Lazer Showdown", True, WHITE)
+        title_pos = (sw // 2 - title_surf.get_width() // 2, logo_rect.bottom + 20)
+        screen.blit(title_surf, title_pos)
+        for i, line in enumerate(instr):
+            sub_surf = sub_font.render(line, True, LIGHT_BLUE)
+            pos = (sw // 2 - sub_surf.get_width() // 2, title_pos[1] + 80 + i * 40)
+            screen.blit(sub_surf, pos)
+
+        # TIP OVERLAY: heartbeat pulse, rotate 45°, center-scale
+        tip_text = TIPS[tip_index]
+        # Faster heartbeat frequency
+        t = pygame.time.get_ticks() / 1000.0
+        # Heartbeat: quick peaks using absolute sine
+        scale = 1.0 + 0.05 * abs(math.sin(t * math.pi))
+        raw_tip = tip_font.render(tip_text, True, (255,255,0))
+        # Rotate and scale around center
+        tip_surf = pygame.transform.rotozoom(raw_tip, 20, scale)
+        # Position: top-right of logo
+        tip_center = (logo_rect.right - 100, logo_rect.top + 170)
+        tip_rect = tip_surf.get_rect(center=tip_center)
+        screen.blit(tip_surf, tip_rect)
+
+        # Draw buttons
+        startBtn.draw(screen)
+
+        pygame.display.flip()
+
+        # Button handling: start or load then enter main loop
+        if startBtn.is_pressed():
+            return
+
+
 
 
 def main_game_loop(screen):
@@ -991,6 +1044,7 @@ def main_game_loop(screen):
             if e.type == pygame.QUIT:
                 running = False
             elif e.type == pygame.VIDEORESIZE:
+                mgr.save_state()
                 screen = pygame.display.set_mode((e.w, e.h), pygame.RESIZABLE)
                 mgr.screen = screen
                 mgr.redraw_scene()
@@ -1051,6 +1105,14 @@ def main_game_loop(screen):
         if restartBtn.is_pressed():
             mgr.save_state()
             mgr.reset_game()
+            
+        if saveBtn.is_pressed():
+            mgr.save_state()
+            mgr.save_to_file()
+        if loadBtn.is_pressed():
+            mgr.save_state()
+            mgr.load_from_file()
+            
 
 
 # Entry point
@@ -1060,10 +1122,12 @@ icon = pygame.image.load(PATH + "assets/images/icon.ico")
 pygame.display.set_caption("Lazer Showdown")
 pygame.display.set_icon(icon)
 font = pygame.font.Font(PATH + "assets/fonts/Font.ttf", 32)
+logo = pygame.transform.scale(pygame.image.load("assets/images/logo.png"), (768, 192))
 
-startBtn = Button(
-    PATH + "assets/images/btn/StartBtnImg.png", (screen.get_width() // 2, 750), 1.5
-)
+startBtn = Button(PATH + "assets/images/btn/StartBtnImg.png", (screen.get_width() // 2, 750), 1.5)
+
+saveBtn = Button(PATH + "assets/images/btn/SaveBtnImg.png", (screen.get_width() - 200, 825), 1.5)
+loadBtn = Button(PATH + "assets/images/btn/LoadBtnImg.png", (screen.get_width() - 200, saveBtn.rect.centery + 120), 1.5)
 fireBtn = Button(PATH + "assets/images/btn/FireBtnImg.png", (200, 200), 1.5)
 rotateBtn = Button(PATH + "assets/images/btn/RotateBtnImg.png", (200, 300), 1.5)
 rollBtn = Button(PATH + "assets/images/btn/RollBtnImg.png", (200, 400), 1.5)
